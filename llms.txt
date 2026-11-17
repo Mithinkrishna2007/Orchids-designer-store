@@ -5,7 +5,7 @@ ORCHIDS Designer Store is a premium designer boutique in Coimbatore, Tamil Nadu,
 ## Business details
 - Address: Opposite Ashram School & ICICI Bank, KK Nagar, Sundakkamuthur, Coimbatore, Tamil Nadu 641010, India
 - WhatsApp and phone: +91 93840 46656
-- Website: Replace the temporary example.com URL in the production deployment with the verified live ORCHIDS website URL.
+- Website: https://orchidsstudio.in
 - Service areas: Coimbatore, Kovaiputhur, Sundakkamuthur and KK Nagar.
 
 ## Collections and services

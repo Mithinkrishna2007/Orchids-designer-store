@@ -42,7 +42,7 @@ The site header and footer use `logo/web/orchids-mark-header.svg` and `orchids-m
 
 ## Before launch: checklist
 
-1. **Domain:** replace `https://www.example.com` in `index.html`, `build.js`, `sitemap.xml` and `robots.txt`, then run `node build.js`.
+1. **Production domain:** the site is configured for [https://orchidsstudio.in](https://orchidsstudio.in). If the domain changes in the future, run `node scripts/set-site-url.cjs https://www.your-domain.in`, then run `node build.js` to regenerate the inner pages.
 2. **Photographs:** use only photographs that ORCHIDS owns or is authorised to use. Overwrite each image file with the approved photo under the same name. A slot whose file is deleted falls back to the terracotta orchid placeholder. Save ORCHIDS photos with these names (JPG, about 1600px on the long edge, compressed):
    - `assets/images/`: `hero.jpg`, `collection-sarees.jpg`, `collection-kurtis.jpg`, `collection-ethnic.jpg`, `custom-stitching.jpg`, `stitching-detail.jpg`, `boutique-01.jpg` to `boutique-05.jpg`, `about-banner.jpg`, `about-intro.jpg`, `about-collections.jpg`, `about-stitching.jpg`, `banner-sarees.jpg`, `banner-ethnic.jpg`, `service-sarees.jpg`, `service-kurtis.jpg`, `service-ethnic.jpg`, `service-stitching.jpg`, `service-pattern.jpg`, `stitching-hero.jpg`, `about-detail.jpg`, `feature-kurtis.jpg`, `feature-kurtis-detail.jpg`, and a portrait plus a close-up detail for each inner-page hero: `collections-hero.jpg` / `collections-hero-detail.jpg`, `services-hero.jpg` / `services-hero-detail.jpg`, `gallery-hero.jpg` / `gallery-hero-detail.jpg`, `contact-hero.jpg` / `contact-hero-detail.jpg`, plus `og-image.jpg` (1200×630, used for link previews)
    - `assets/images/products/`: names listed in `data.js`

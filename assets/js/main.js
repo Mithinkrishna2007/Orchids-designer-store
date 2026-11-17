@@ -3,9 +3,8 @@
    ========================================================================== */
 (function () {
   "use strict";
-  /* The loader is deliberately independent from the CMS request below. If a
-     network, Supabase or serverless request is slow, visitors still reach the
-     public site instead of being held on a permanent splash screen. */
+  /* The loader always releases independently of page enhancements, so a slow
+     image or script cannot hold visitors on the splash screen. */
   var loader = document.querySelector(".site-loader");
   var loaderShownAt = Date.now();
   function showLoader() {
@@ -189,24 +188,6 @@
     });
   }
 
-  /* New CMS categories use the existing product-card treatment, while the five
-     established collection sections remain exactly as designed. */
-  var standardCollectionKeys = ["sarees", "kurtis", "ethnic", "new", "exclusive"];
-  var managedCollections = document.querySelector("[data-managed-collections]");
-  if (managedCollections) {
-    var extraCategories = Object.keys(CATS).filter(function (key) { return standardCollectionKeys.indexOf(key) === -1; });
-    if (extraCategories.length) {
-      var managedList = managedCollections.querySelector("[data-managed-collection-list]");
-      managedList.innerHTML = extraCategories.map(function (key) {
-        return '<section class="collection-managed" id="' + esc(key) + '"><span class="eyebrow">Collection</span><h3 class="h2">' + esc(CATS[key]) + '</h3><div class="product-grid" data-products="' + esc(key) + '"></div></section>';
-      }).join("");
-      managedCollections.hidden = false;
-      var categoryNav = document.querySelector(".cat-nav__list");
-      if (categoryNav) extraCategories.forEach(function (key) {
-        categoryNav.insertAdjacentHTML("beforeend", '<li><a href="#' + esc(key) + '">' + esc(CATS[key]) + '</a></li>');
-      });
-    }
-  }
   renderProductGrids(document);
 
   /* ---------- Collections page carousels ---------- */
@@ -589,16 +570,11 @@
   }
   }
 
-  /* Honour #hash on collections page after dynamic render */
+  /* Honour collection anchors after product cards render. */
   if (location.hash) {
     var target = document.getElementById(location.hash.slice(1));
     if (target) setTimeout(function () { target.scrollIntoView(); }, 60);
   }
   }
-  var catalogReady = window.ORCHIDS_CATALOG_READY;
-  if (catalogReady && typeof catalogReady.then === "function") {
-    catalogReady.then(init, init);
-  } else {
-    init();
-  }
+  init();
 })();

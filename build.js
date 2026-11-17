@@ -5,7 +5,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const DOMAIN = "https://www.example.com"; // REPLACE with the live domain
+const DOMAIN = "https://orchidsstudio.in"; // REPLACE with the live domain
 const root = __dirname;
 const master = fs.readFileSync(path.join(root, "index.html"), "utf8");
 

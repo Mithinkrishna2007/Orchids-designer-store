@@ -56,7 +56,7 @@ window.ORCHIDS_PRODUCTS = [
   },
   {
     id: "sarees-pure-tussar-sarees",
-    name: "Pure tussar Sarees",
+    name: "Pure Tussar Sarees",
     category: "sarees",
     tags: [],
     description: "",

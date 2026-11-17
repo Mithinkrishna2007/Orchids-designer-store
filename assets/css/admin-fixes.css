@@ -1,0 +1,8 @@
+.button-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+#remove-main-image { justify-self: start; color: #9b2f2f; }
+.admin-collection-group { margin: 0 0 38px; }
+.admin-collection-group > header { display: flex; align-items: end; justify-content: space-between; gap: 18px; padding-bottom: 14px; border-bottom: 1px solid rgba(56, 37, 32, .15); margin-bottom: 17px; }
+.admin-collection-group h2 { margin: 0; font: 500 32px/1 "Cormorant Garamond", Georgia, serif; }
+.admin-collection-group > header > span, .empty-collection { color: #75645e; font-size: 12px; }
+.empty-collection { padding: 20px; background: rgba(255,255,255,.65); border: 1px dashed rgba(56,37,32,.18); }
+@media (max-width: 520px) { .admin-collection-group > header { align-items: start; flex-direction: column; gap: 5px; } }

@@ -1,0 +1,14 @@
+{
+  "name": "orchids-whatsapp-assistant",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WhatsApp Cloud API customer assistant for ORCHIDS Designer Store",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

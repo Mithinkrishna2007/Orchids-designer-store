@@ -58,7 +58,8 @@
   async function refresh() {
     const data = await api("/api/admin/products");
     state.products = data.products || []; state.categories = data.categories || []; state.images = data.images || [];
-    const library = await api("/api/admin/images"); state.files = library.files || [];
+    try { const library = await api("/api/admin/images"); state.files = library.files || []; }
+    catch (_) { state.files = []; }
     updateMetrics(); renderProducts(); renderCategories(); renderImages();
   }
   function catalogCategory(product) {
@@ -85,30 +86,40 @@
     if (!missing.length) return toast("All current website products are already in the dashboard.");
     const button = $("#import-current-catalog"); button.disabled = true;
     try {
+      const failures = [];
       for (let index = 0; index < missing.length; index += 1) {
         const product = missing[index];
         setMessage("#import-message", `Importing ${index + 1} of ${missing.length}: ${product.name}`);
-        const imagePaths = [...new Set([product.image, ...(product.images || [])].filter(Boolean))];
-        const uploaded = [];
-        for (let imageIndex = 0; imageIndex < imagePaths.length; imageIndex += 1) {
-          uploaded.push(await uploadStaticImage(imagePaths[imageIndex], product.id || `item-${index}`, imageIndex));
+        try {
+          const imagePaths = [...new Set([product.image, ...(product.images || [])].filter(Boolean))];
+          const uploaded = [];
+          for (let imageIndex = 0; imageIndex < imagePaths.length; imageIndex += 1) {
+            uploaded.push(await uploadStaticImage(imagePaths[imageIndex], product.id || `item-${index}`, imageIndex));
+          }
+          if (!uploaded[0]) throw new Error("No valid main image was found");
+          await api("/api/admin/products", { method: "POST", body: JSON.stringify({
+            name: product.name,
+            category_id: categoryBySlug[catalogCategory(product)],
+            description: product.description || "",
+            main_image_path: uploaded[0],
+            display_order: index + 1,
+            status: "published",
+            focal_x: 50,
+            focal_y: 50,
+            images: uploaded.slice(1).map((path, imageIndex) => ({ path, display_order: imageIndex + 1, focal_x: 50, focal_y: 50 }))
+          }) });
+        } catch (error) {
+          failures.push(`${product.name}: ${error.message || "could not be imported"}`);
         }
-        if (!uploaded[0]) throw new Error(`No valid main image was found for ${product.name}.`);
-        await api("/api/admin/products", { method: "POST", body: JSON.stringify({
-          name: product.name,
-          category_id: categoryBySlug[catalogCategory(product)],
-          description: product.description || "",
-          main_image_path: uploaded[0],
-          display_order: index + 1,
-          status: "published",
-          focal_x: 50,
-          focal_y: 50,
-          images: uploaded.slice(1).map((path, imageIndex) => ({ path, display_order: imageIndex + 1, focal_x: 50, focal_y: 50 }))
-        }) });
       }
-      setMessage("#import-message", "");
-      toast(`${missing.length} current website products imported. You can now edit, delete or replace them here.`);
       await refresh();
+      if (failures.length) {
+        setMessage("#import-message", `${missing.length - failures.length} imported. ${failures.length} could not be imported: ${failures.join(" · ")}. You can retry safely.`);
+        toast("Import completed with a few items needing a retry.", true);
+      } else {
+        setMessage("#import-message", "");
+        toast(`${missing.length} current website products imported. You can now edit, delete or replace them here.`);
+      }
     } catch (error) {
       setMessage("#import-message", error.message || "Import did not finish. You can safely retry; existing products will be skipped.");
     } finally { button.disabled = false; }

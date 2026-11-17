@@ -6,3 +6,18 @@
 .admin-collection-group > header > span, .empty-collection { color: #75645e; font-size: 12px; }
 .empty-collection { padding: 20px; background: rgba(255,255,255,.65); border: 1px dashed rgba(56,37,32,.18); }
 @media (max-width: 520px) { .admin-collection-group > header { align-items: start; flex-direction: column; gap: 5px; } }
+
+/* Dashboard-only additions. These selectors are loaded exclusively by /admin. */
+.metric-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.recent-products { margin-top: 24px; }
+.recent-products h2 { margin-bottom: 18px; }
+.recent-products__list { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.recent-products__list article { border: 1px solid rgba(56, 37, 32, .15); padding: 13px; background: #fff; }
+.recent-products__list strong, .recent-products__list span { display: block; }
+.recent-products__list span, .product-meta, .field-hint { color: #75645e; font-size: 11px; }
+.product-meta { margin: 8px 0 0; }
+.field-hint { font-weight: 400; }
+.admin-form .text-button { color: #a65332; }
+@media (max-width: 1020px) { .metric-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 780px) { .metric-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 420px) { .metric-grid { grid-template-columns: 1fr; } }

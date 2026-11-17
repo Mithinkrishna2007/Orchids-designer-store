@@ -5,7 +5,7 @@
   const TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
   const $ = (selector, parent = document) => parent.querySelector(selector);
   const $$ = (selector, parent = document) => Array.from(parent.querySelectorAll(selector));
-  const state = { client: null, config: null, session: null, products: [], categories: [], images: [], files: [], selected: new Set(), editingImages: [], editingMainPath: "", staticProducts: window.ORCHIDS_PRODUCTS || [] };
+  const state = { client: null, config: null, session: null, products: [], categories: [], images: [], files: [], selected: new Set(), editingImages: [], editingMainPath: "", staticProducts: window.ORCHIDS_PRODUCTS || [], isSaving: false };
 
   function escapeHtml(value) { const node = document.createElement("span"); node.textContent = value || ""; return node.innerHTML; }
   function publicUrl(path) { return path ? state.client.storage.from(state.config.bucket).getPublicUrl(path).data.publicUrl : ""; }
@@ -15,27 +15,48 @@
   async function api(path, options = {}) {
     const response = await fetch(path, { ...options, headers: { ...authHeaders(), ...(options.headers || {}) } });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) { const error = new Error(data.error || "Request failed."); error.status = response.status; error.data = data; throw error; }
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        await state.client?.auth.signOut();
+        showLogin(data.error || "Your session has expired. Please sign in again.");
+      }
+      const error = new Error(data.error || "Request failed."); error.status = response.status; error.data = data; throw error;
+    }
     return data;
+  }
+  function showLogin(message) {
+    state.session = null;
+    $("#dashboard-view").hidden = true;
+    $("#login-view").hidden = false;
+    setMessage("#login-message", message || "");
   }
   function categoryName(id) { const category = state.categories.find((item) => item.id === id); return category ? category.name : "Unassigned"; }
   function imagesFor(productId) { return state.images.filter((image) => image.product_id === productId); }
+  function formatDate(value) {
+    if (!value) return "Not yet saved";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? "Not yet saved" : date.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  }
   function updateMetrics() {
     const metrics = [
       [state.products.length, "Total products"],
       [state.products.filter((product) => product.status === "published").length, "Published"],
       [state.products.filter((product) => product.status === "draft").length, "Drafts"],
+      [state.products.filter((product) => product.status === "hidden").length, "Hidden"],
       [state.categories.filter((category) => category.is_visible).length, "Visible categories"]
     ];
     $("#metrics").innerHTML = metrics.map(([number, label]) => `<article class="metric"><strong>${number}</strong><span>${label}</span></article>`).join("");
+    const recent = state.products.slice().sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0)).slice(0, 5);
+    $("#recent-products").innerHTML = recent.length ? recent.map((product) => `<article><strong>${escapeHtml(product.name)}</strong><span>${escapeHtml(categoryName(product.category_id))} · ${formatDate(product.updated_at || product.created_at)}</span></article>`).join("") : "<p>No products have been added yet.</p>";
   }
   function renderProducts() {
     const term = $("#product-search").value.trim().toLowerCase();
     const productCard = (product) => {
       const image = publicUrl(product.main_image_path);
-      return `<article class="admin-product"><input class="select-product" type="checkbox" data-select-product="${product.id}" ${state.selected.has(product.id) ? "checked" : ""} aria-label="Select ${escapeHtml(product.name)}"><figure>${image ? `<img src="${image}" alt="">` : ""}</figure><div class="admin-product__body"><small>${escapeHtml(categoryName(product.category_id))}</small><h3>${escapeHtml(product.name)}</h3><span class="status status--${product.status}">${product.status}</span><div class="admin-product__actions"><button type="button" data-edit-product="${product.id}">Edit</button><button type="button" data-product-status="${product.id}" data-status="${product.status === "published" ? "hidden" : "published"}">${product.status === "published" ? "Hide" : "Publish"}</button><button type="button" data-delete-product="${product.id}">Delete</button></div></div></article>`;
+      return `<article class="admin-product"><input class="select-product" type="checkbox" data-select-product="${product.id}" ${state.selected.has(product.id) ? "checked" : ""} aria-label="Select ${escapeHtml(product.name)}"><figure>${image ? `<img src="${image}" alt="">` : ""}</figure><div class="admin-product__body"><small>${escapeHtml(categoryName(product.category_id))}</small><h3>${escapeHtml(product.name)}</h3><span class="status status--${product.status}">${product.status}</span><p class="product-meta">Order ${Number(product.display_order) || 0} · Updated ${formatDate(product.updated_at || product.created_at)}</p><div class="admin-product__actions"><button type="button" data-edit-product="${product.id}">Edit</button><button type="button" data-product-status="${product.id}" data-status="${product.status === "published" ? "hidden" : "published"}">${product.status === "published" ? "Hide" : "Publish"}</button><button type="button" data-delete-product="${product.id}">Delete</button></div></div></article>`;
     };
-    const groups = state.categories.map((category) => ({ category, products: state.products.filter((product) => product.category_id === category.id && product.name.toLowerCase().includes(term)) })).filter((group) => group.products.length || !term);
+    const uniqueProducts = Array.from(new Map(state.products.map((product) => [product.id, product])).values());
+    const groups = state.categories.map((category) => ({ category, products: uniqueProducts.filter((product) => product.category_id === category.id && product.name.toLowerCase().includes(term)) })).filter((group) => group.products.length || !term);
     $("#products-list").innerHTML = groups.length ? groups.map(({ category, products }) => `<section class="admin-collection-group" data-category="${escapeHtml(category.slug)}"><header><div><p class="admin-kicker">${category.slug === "new" || category.slug === "exclusive" ? "Priority collection" : "Collection"}</p><h2>${escapeHtml(category.name)}</h2></div><span>${products.length} product${products.length === 1 ? "" : "s"}</span></header>${products.length ? `<div class="product-admin-grid">${products.map(productCard).join("")}</div>` : `<p class="empty-collection">No products here yet. Use “Add product” to place a new product in this collection.</p>`}</section>`).join("") : "<p>No products match this search.</p>";
     $("#bulk-delete").disabled = state.selected.size === 0;
   }
@@ -57,7 +78,7 @@
   }
   async function refresh() {
     const data = await api("/api/admin/products");
-    state.products = data.products || []; state.categories = data.categories || []; state.images = data.images || [];
+    state.products = Array.from(new Map((data.products || []).map((product) => [product.id, product])).values()); state.categories = data.categories || []; state.images = data.images || [];
     try { const library = await api("/api/admin/images"); state.files = library.files || []; }
     catch (_) { state.files = []; }
     updateMetrics(); renderProducts(); renderCategories(); renderImages();
@@ -98,12 +119,14 @@
           }
           if (!uploaded[0]) throw new Error("No valid main image was found");
           await api("/api/admin/products", { method: "POST", body: JSON.stringify({
+            legacy_id: product.id,
             name: product.name,
             category_id: categoryBySlug[catalogCategory(product)],
             description: product.description || "",
             main_image_path: uploaded[0],
             display_order: index + 1,
             status: "published",
+            tags: product.tags || [],
             focal_x: 50,
             focal_y: 50,
             images: uploaded.slice(1).map((path, imageIndex) => ({ path, display_order: imageIndex + 1, focal_x: 50, focal_y: 50 }))
@@ -137,6 +160,7 @@
     $("#product-category").innerHTML = state.categories.map((category) => `<option value="${category.id}" ${product?.category_id === category.id ? "selected" : ""}>${escapeHtml(category.name)}</option>`).join("");
     $("#product-order").value = product?.display_order ?? 0;
     $("#product-status").value = product?.status || "draft";
+    $("#product-tags").value = (product?.tags || []).join(", ");
     $("#product-description").value = product?.description || "";
     $("#product-focal-x").value = product?.focal_x ?? 50;
     $("#product-focal-y").value = product?.focal_y ?? 50;
@@ -167,18 +191,22 @@
   }
   async function saveProduct(event) {
     event.preventDefault();
+    if (state.isSaving) return;
     const mainFile = $("#product-main-image").files[0]; const additionalFiles = $("#product-additional-images").files;
     if (!validateFiles(mainFile ? [mainFile] : []) || !validateFiles(additionalFiles)) return setMessage("#product-message", "Use JPG, PNG or WebP images up to 10 MB each.");
     try {
+      state.isSaving = true;
+      $("#save-product").disabled = true;
       let mainPath = state.editingMainPath;
       if (mainFile) mainPath = (await uploadFiles([mainFile], "#product-message"))[0].path;
       const newImages = await uploadFiles(Array.from(additionalFiles), "#product-message");
       const status = $("#product-status").value;
       if (status === "published" && !mainPath) return setMessage("#product-message", "A main photograph is required before publishing.");
-      const payload = { id: $("#product-id").value || undefined, name: $("#product-name").value, category_id: $("#product-category").value, display_order: Number($("#product-order").value), status, description: $("#product-description").value, main_image_path: mainPath, focal_x: Number($("#product-focal-x").value), focal_y: Number($("#product-focal-y").value), images: state.editingImages.concat(newImages) };
+      const payload = { id: $("#product-id").value || undefined, name: $("#product-name").value, category_id: $("#product-category").value, display_order: Number($("#product-order").value), status, tags: $("#product-tags").value.split(","), description: $("#product-description").value, main_image_path: mainPath, focal_x: Number($("#product-focal-x").value), focal_y: Number($("#product-focal-y").value), images: state.editingImages.filter((image) => image.path).concat(newImages) };
       await api("/api/admin/products", { method: payload.id ? "PATCH" : "POST", body: JSON.stringify(payload) });
       $("#product-dialog").close(); toast("Product saved. Published changes will appear on the website shortly."); await refresh();
     } catch (error) { setMessage("#product-message", error.message || "Could not save the product."); }
+    finally { state.isSaving = false; $("#save-product").disabled = false; }
   }
   function confirm(content, actionText, onConfirm) {
     $("#confirm-content").innerHTML = content; const dialog = $("#confirm-dialog"); const action = $("#confirm-action"); action.textContent = actionText || "Confirm delete";
@@ -210,6 +238,11 @@
       state.client = window.supabase.createClient(state.config.url, state.config.anonKey, { auth: { persistSession: true, autoRefreshToken: true } });
       const { data: { session } } = await state.client.auth.getSession();
       if (session?.user?.email?.toLowerCase() === AUTHORISED_EMAIL) await initDashboard(session);
+      else if (session) { await state.client.auth.signOut(); showLogin("This account is not authorised to manage ORCHIDS."); }
+      state.client.auth.onAuthStateChange((event, nextSession) => {
+        if (event === "SIGNED_OUT" || !nextSession) showLogin("Your session has ended. Please sign in again.");
+        if (event === "TOKEN_REFRESHED" && nextSession) state.session = nextSession;
+      });
     } catch (error) { setMessage("#login-message", error.message); }
   }
   $("#login-form").addEventListener("submit", async (event) => { event.preventDefault(); try { setMessage("#login-message", "Signing in…"); const { data, error } = await state.client.auth.signInWithPassword({ email: $("#login-email").value, password: $("#login-password").value }); if (error) throw error; if (data.user.email.toLowerCase() !== AUTHORISED_EMAIL) { await state.client.auth.signOut(); throw new Error("This account is not authorised to manage ORCHIDS."); } setMessage("#login-message", ""); await initDashboard(data.session); } catch (error) { setMessage("#login-message", error.message || "Unable to sign in."); } });
@@ -222,7 +255,12 @@
   $("#import-current-catalog").addEventListener("click", () => confirm(`<h2>Import current website products?</h2><p>This copies the existing ORCHIDS collection photos and product names into Supabase once. It does not delete or change anything on the current website. After import, every product can be edited, removed or replaced from this dashboard.</p>`, "Import products", importCurrentCatalog));
   $("#product-name").addEventListener("input", () => { if (!$("#product-id").value) $("#category-slug"); });
   $("#product-main-image").addEventListener("change", (event) => { const file = event.target.files[0]; if (file) $("#main-preview").innerHTML = `<img src="${URL.createObjectURL(file)}" alt="New main preview">`; });
-  $("#remove-main-image").addEventListener("click", () => { state.editingMainPath = ""; $("#product-main-image").value = ""; $("#main-preview").innerHTML = ""; setMessage("#product-message", "Main photograph removed. Add a replacement before publishing."); });
+  $("#remove-main-image").addEventListener("click", () => {
+    if (!state.editingMainPath) return;
+    confirm("<h2>Remove main photograph?</h2><p>The product will keep its current photograph until you save this change. A published product needs a replacement before it can be saved.</p>", "Remove photograph", async () => {
+      state.editingMainPath = ""; $("#product-main-image").value = ""; $("#main-preview").innerHTML = ""; setMessage("#product-message", "Main photograph removed. Add a replacement before publishing.");
+    });
+  });
   $("#product-additional-images").addEventListener("change", (event) => { Array.from(event.target.files).forEach((file) => state.editingImages.push({ preview: URL.createObjectURL(file), pending: file, path: "" })); renderAdditionalPreviews(); });
   document.addEventListener("click", async (event) => {
     const closeDialog = event.target.closest("[data-close-dialog]")?.dataset.closeDialog; if (closeDialog) { $("#" + closeDialog).close(); return; }
@@ -232,7 +270,7 @@
     const select = event.target.closest("[data-select-product]"); if (select) { select.checked ? state.selected.add(select.dataset.selectProduct) : state.selected.delete(select.dataset.selectProduct); $("#bulk-delete").disabled = state.selected.size === 0; return; }
     const categoryId = event.target.closest("[data-edit-category]")?.dataset.editCategory; if (categoryId) return openCategory(state.categories.find((category) => category.id === categoryId));
     const deleteCategoryId = event.target.closest("[data-delete-category]")?.dataset.deleteCategory; if (deleteCategoryId) return deleteCategory(state.categories.find((category) => category.id === deleteCategoryId));
-    const removeIndex = event.target.closest("[data-remove-additional]")?.dataset.removeAdditional; if (removeIndex !== undefined) { state.editingImages.splice(Number(removeIndex), 1); renderAdditionalPreviews(); return; }
+    const removeIndex = event.target.closest("[data-remove-additional]")?.dataset.removeAdditional; if (removeIndex !== undefined) { confirm("<h2>Remove additional photograph?</h2><p>The photograph will remain safely stored unless you later remove it from the Image Library.</p>", "Remove photograph", async () => { state.editingImages.splice(Number(removeIndex), 1); renderAdditionalPreviews(); }); return; }
     const imagePath = event.target.closest("[data-delete-image]")?.dataset.deleteImage; if (imagePath) confirm(`<h2>Remove image permanently?</h2><p>This photograph is protected while any product uses it. Remove it from the product first, then confirm permanent deletion.</p>`, "Delete image", async () => { await api("/api/admin/images", { method: "DELETE", body: JSON.stringify({ path: imagePath, confirm: true }) }); toast("Image permanently deleted."); await refresh(); });
   });
   boot();

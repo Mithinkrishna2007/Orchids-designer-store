@@ -33,29 +33,32 @@
 
     var uniqueRemote = [];
     var remoteByIdentity = {};
+    var remoteByLegacyId = {};
     catalog.products.forEach(function (product) {
       if (!product || !product.name || !product.image) return;
       var key = identity(product);
       if (remoteByIdentity[key]) return;
-      remoteByIdentity[key] = normaliseRemoteProduct(product);
-      uniqueRemote.push(remoteByIdentity[key]);
+      var normalised = normaliseRemoteProduct(product);
+      remoteByIdentity[key] = normalised;
+      if (normalised.legacyId) remoteByLegacyId[normalised.legacyId] = normalised;
+      uniqueRemote.push(normalised);
     });
 
     /* An edit to an existing product may update its photograph/details. A
        missing CMS row never removes the original public product. */
     var merged = baselineProducts.map(function (product) {
-      var update = remoteByIdentity[identity(product)];
+      var update = remoteByLegacyId[product.id] || remoteByIdentity[identity(product)];
       if (!update) return product;
       return Object.assign({}, product, update, {
         id: product.id,
-        category: product.category,
-        tags: product.tags || update.tags || []
+        category: update.category || product.category,
+        tags: update.tags && update.tags.length ? update.tags : (product.tags || [])
       });
     });
     var baselineIds = {};
-    baselineProducts.forEach(function (product) { baselineIds[identity(product)] = true; });
+    baselineProducts.forEach(function (product) { baselineIds[identity(product)] = true; baselineIds[product.id] = true; });
     uniqueRemote.forEach(function (product) {
-      if (!baselineIds[identity(product)]) merged.push(product);
+      if (!baselineIds[identity(product)] && !baselineIds[product.legacyId]) merged.push(product);
     });
 
     var categories = Object.assign({}, baselineCategories);

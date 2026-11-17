@@ -11,7 +11,7 @@ module.exports = async function handler(req, res) {
     const bucket = process.env.SUPABASE_STORAGE_BUCKET || "product-images";
     const [{ data: categories, error: categoryError }, { data: products, error: productError }, { data: images, error: imageError }] = await Promise.all([
       supabase.from("categories").select("id,slug,name,display_order").eq("is_visible", true).order("display_order"),
-      supabase.from("products").select("id,name,description,display_order,main_image_path,focal_x,focal_y,category_id").eq("status", "published").order("display_order"),
+      supabase.from("products").select("id,legacy_id,name,description,display_order,main_image_path,focal_x,focal_y,category_id,tags").eq("status", "published").order("display_order"),
       supabase.from("product_images").select("product_id,path,alt_text,display_order,focal_x,focal_y").order("display_order")
     ]);
     if (categoryError || productError || imageError) throw categoryError || productError || imageError;
@@ -26,6 +26,7 @@ module.exports = async function handler(req, res) {
       const main = imageUrl(supabase, bucket, product.main_image_path);
       return {
         id: product.id,
+        legacyId: product.legacy_id || "",
         name: product.name,
         category: categoriesById[product.category_id].slug,
         description: product.description || "",
@@ -34,7 +35,7 @@ module.exports = async function handler(req, res) {
         images: [main].concat(extra.map((image) => imageUrl(supabase, bucket, image.path))).filter(Boolean),
         focalPosition: `${product.focal_x || 50}% ${product.focal_y || 50}%`,
         tone: "ivory",
-        tags: []
+        tags: product.tags || []
       };
     });
     return res.status(200).json({ configured: true, categories: categoryMap, products: items });

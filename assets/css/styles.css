@@ -531,6 +531,7 @@ em, i { font-style: normal; }
 .ticks { margin-top: 22px; display: grid; gap: 10px; }
 .ticks li { display: flex; gap: 14px; align-items: baseline; }
 .ticks li::before { content: "✦"; color: var(--terracotta); font-size: 11px; flex: none; }
+.section--espresso .ticks li::before { color: var(--champagne); }
 
 /* ---------- Product cards ---------- */
 .product-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(28px, 2.6vw, 40px) clamp(16px, 2vw, 28px); }
@@ -919,7 +920,7 @@ em, i { font-style: normal; }
   padding-bottom: 0;
 }
 .page-hero__inner--about .lead { margin-top: 24px; max-width: 50ch; }
-.about-hero__portrait { width: min(100%, 310px); justify-self: end; }
+.about-hero__portrait { width: min(100%, 280px); justify-self: end; }
 .about-hero__portrait .frame {
   padding: 8px;
   border: 7px solid #2b211e;
@@ -930,8 +931,8 @@ em, i { font-style: normal; }
 .about-hero__portrait .frame::after,
 .about-hero__portrait .media::before,
 .about-hero__portrait .media::after { display: none; }
-.about-hero__portrait .media { background: #e8ded3; overflow: hidden; }
-.about-hero__portrait .media img { object-fit: cover; object-position: 72% center; }
+.about-hero__portrait .media { aspect-ratio: 9 / 16; background: #e8ded3; overflow: hidden; }
+.about-hero__portrait .media img { object-fit: cover; object-position: center; }
 
 /* ---------- Pillars / values ---------- */
 .pillars { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); }
@@ -1554,7 +1555,7 @@ em, i { font-style: normal; }
 @media (max-width: 960px) {
   .page-hero__inner--art { grid-template-columns: 1fr; }
   .page-hero__inner--about { grid-template-columns: 1fr; gap: 34px; }
-  .about-hero__portrait { justify-self: center; width: min(82%, 310px); }
+  .about-hero__portrait { justify-self: center; width: min(82%, 280px); }
   .hero-art { margin: 24px auto 0; width: min(74%, 380px); }
   .page-hero::before { width: 80vw; right: -34%; top: 30%; opacity: .05; }
   .collection-feature { grid-template-columns: 1fr; }
@@ -1746,6 +1747,7 @@ em, i { font-style: normal; }
   .lightbox__btn { top: auto; bottom: 18px; transform: none; }
   .scroll-top { min-width: 58px; height: 32px; right: 86px; bottom: 29px; padding-inline: 10px; font-size: 7.5px; }
   .has-scroll-accent::before { width: 44vw; right: -20vw; }
+  .orchid-fall { display: none; }
 }
 @media (max-width: 480px) {
   .brand__logo { width: 112px; max-height: 40px; }

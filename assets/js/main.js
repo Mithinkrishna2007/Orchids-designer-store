@@ -8,7 +8,8 @@
   /* ---------- Floating orchid details ---------- */
   /* Decorative only: the small orchid marks are non-interactive and are
      omitted for visitors who prefer reduced motion. */
-  if (!window.matchMedia || !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  var compactMotionViewport = window.matchMedia && window.matchMedia("(max-width: 760px)").matches;
+  if ((!window.matchMedia || !window.matchMedia("(prefers-reduced-motion: reduce)").matches) && !compactMotionViewport) {
     var orchidFall = document.createElement("div");
     orchidFall.className = "orchid-fall";
     orchidFall.setAttribute("aria-hidden", "true");
@@ -459,6 +460,7 @@
 
   /* ---------- Reveal on scroll ---------- */
   bindWhatsApp();
+  var compactViewport = compactMotionViewport;
   /* Give every major editorial group a quiet entrance without requiring a
      manual class on every page template. The selectors intentionally live
      inside <main>, so navigation and controls remain instantly available. */
@@ -478,14 +480,18 @@
     "main .orchid-collection-card",
     "main .pcard"
   ].join(",");
-  document.querySelectorAll(autoRevealSelector).forEach(function (el, index) {
-    if (!el.classList.contains("reveal")) {
-      el.classList.add("reveal", "reveal-auto");
-      el.style.setProperty("--reveal-delay", (index % 4 * 0.11).toFixed(2) + "s");
-    }
-  });
+  if (!compactViewport) {
+    document.querySelectorAll(autoRevealSelector).forEach(function (el, index) {
+      if (!el.classList.contains("reveal")) {
+        el.classList.add("reveal", "reveal-auto");
+        el.style.setProperty("--reveal-delay", (index % 4 * 0.11).toFixed(2) + "s");
+      }
+    });
+  }
   var reveals = document.querySelectorAll(".reveal");
-  if ("IntersectionObserver" in window) {
+  if (compactViewport) {
+    reveals.forEach(function (el) { el.classList.add("is-visible"); });
+  } else if ("IntersectionObserver" in window) {
     var ro = new IntersectionObserver(function (entries) {
       entries.forEach(function (en) {
         if (en.isIntersecting) { en.target.classList.add("is-visible"); ro.unobserve(en.target); }
@@ -498,6 +504,7 @@
 
   /* ---------- Editorial scroll polish ---------- */
   var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!compactViewport) {
   document.body.classList.add("motion-enhanced");
   var progress = document.createElement("div");
   progress.className = "scroll-progress";
@@ -550,6 +557,7 @@
       section.classList.add("has-scroll-accent");
       sectionObserver.observe(section);
     });
+  }
   }
 
   /* Honour #hash on collections page after dynamic render */

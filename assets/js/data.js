@@ -119,7 +119,7 @@ window.ORCHIDS_PRODUCTS = [
     tags: [],
     description: "",
     details: [],
-    image: "assets/images/products/orchids/kotaa-sarees.png",
+    image: "assets/images/products/orchids/Kotaa-sarees.png",
     tone: "rose"
   },
   {

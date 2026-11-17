@@ -1,0 +1,14 @@
+{
+  "name": "orchids-designer-store",
+  "private": true,
+  "version": "1.0.0",
+  "description": "ORCHIDS Designer Store public website and private Supabase CMS",
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.4"
+  },
+  "scripts": {
+    "check": "node --check assets/js/main.js && node --check assets/js/public-catalog.js && node --check assets/js/admin.js",
+    "import:catalog": "node scripts/import-static-catalog.cjs"
+  }
+}

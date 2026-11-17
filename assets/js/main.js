@@ -3,6 +3,7 @@
    ========================================================================== */
 (function () {
   "use strict";
+  function init() {
   document.documentElement.classList.add("js");
 
   /* ---------- Floating orchid details ---------- */
@@ -82,8 +83,9 @@
   function productMessage(name) {
     return "Hello ORCHIDS! I am interested in the " + name + ". Could you please share more details?";
   }
-  function media(image, tone, label, alt, cls) {
-    var imageMarkup = image ? '<img src="' + esc(image) + '" alt="' + esc(alt || label || "") + '" loading="lazy" decoding="async" onerror="this.remove()">' : "";
+  function media(image, tone, label, alt, cls, focalPosition) {
+    var position = focalPosition ? ' style="object-position:' + esc(focalPosition) + '"' : "";
+    var imageMarkup = image ? '<img src="' + esc(image) + '" alt="' + esc(alt || label || "") + '" loading="lazy" decoding="async"' + position + ' onerror="this.remove()">' : "";
     var placeholderClass = image ? "" : " media--placeholder";
     var imageBackdrop = image && String(cls || "").indexOf("gallery-media") !== -1 ? ' style="--gallery-image:url(&quot;' + esc(image) + '&quot;)"' : "";
     return '<div class="media media--' + esc(tone || "terracotta") + placeholderClass + " " + (cls || "") + '" data-label="' + esc(label || "") + '"' + imageBackdrop + '>' +
@@ -154,7 +156,7 @@
     return '<article class="pcard reveal">' +
       '<div class="pcard__media" role="button" tabindex="0" data-details="' + esc(p.id) + '" aria-label="View details of ' + esc(p.name) + '">' +
         (tag ? '<span class="pcard__tag">' + tag + "</span>" : "") +
-        media(p.image, p.tone, cat, p.name + " — " + cat + " at ORCHIDS Designer Store, Coimbatore") +
+        media(p.image, p.tone, cat, p.name + " — " + cat + " at ORCHIDS Designer Store, Coimbatore", "", p.focalPosition) +
         '<span class="pcard__quick">View Details</span>' +
       "</div>" +
       '<div class="pcard__body">' +
@@ -169,16 +171,38 @@
     "</article>";
   }
 
-  document.querySelectorAll("[data-products]").forEach(function (grid) {
-    var key = grid.getAttribute("data-products");
-    var limit = parseInt(grid.getAttribute("data-limit"), 10) || Infinity;
-    var list = PRODUCTS.filter(function (p) {
-      if (key === "all") return true;
-      if (CATS[key]) return p.category === key;
-      return p.tags && p.tags.indexOf(key) > -1;
-    }).slice(0, limit);
-    grid.innerHTML = list.map(productCard).join("");
-  });
+  function renderProductGrids(root) {
+    (root || document).querySelectorAll("[data-products]").forEach(function (grid) {
+      var key = grid.getAttribute("data-products");
+      var limit = parseInt(grid.getAttribute("data-limit"), 10) || Infinity;
+      var list = PRODUCTS.filter(function (p) {
+        if (key === "all") return true;
+        if (CATS[key]) return p.category === key;
+        return p.tags && p.tags.indexOf(key) > -1;
+      }).slice(0, limit);
+      grid.innerHTML = list.map(productCard).join("");
+    });
+  }
+
+  /* New CMS categories use the existing product-card treatment, while the five
+     established collection sections remain exactly as designed. */
+  var standardCollectionKeys = ["sarees", "kurtis", "ethnic", "new", "exclusive"];
+  var managedCollections = document.querySelector("[data-managed-collections]");
+  if (managedCollections) {
+    var extraCategories = Object.keys(CATS).filter(function (key) { return standardCollectionKeys.indexOf(key) === -1; });
+    if (extraCategories.length) {
+      var managedList = managedCollections.querySelector("[data-managed-collection-list]");
+      managedList.innerHTML = extraCategories.map(function (key) {
+        return '<section class="collection-managed" id="' + esc(key) + '"><span class="eyebrow">Collection</span><h3 class="h2">' + esc(CATS[key]) + '</h3><div class="product-grid" data-products="' + esc(key) + '"></div></section>';
+      }).join("");
+      managedCollections.hidden = false;
+      var categoryNav = document.querySelector(".cat-nav__list");
+      if (categoryNav) extraCategories.forEach(function (key) {
+        categoryNav.insertAdjacentHTML("beforeend", '<li><a href="#' + esc(key) + '">' + esc(CATS[key]) + '</a></li>');
+      });
+    }
+  }
+  renderProductGrids(document);
 
   /* ---------- Collections page carousels ---------- */
   function collectionCarousel(grid) {
@@ -275,7 +299,7 @@
     var p = PRODUCTS.filter(function (x) { return x.id === id; })[0];
     if (!p || !modal) return;
     var cat = CATS[p.category] || "";
-    modal.querySelector("[data-modal-media]").innerHTML = media(p.image, p.tone, cat, p.name);
+    modal.querySelector("[data-modal-media]").innerHTML = media(p.image, p.tone, cat, p.name, "", p.focalPosition);
     modal.querySelector("[data-modal-cat]").textContent = cat;
     modal.querySelector("[data-modal-title]").textContent = p.name;
     modal.querySelector("[data-modal-desc]").textContent = p.description || "";
@@ -564,5 +588,12 @@
   if (location.hash) {
     var target = document.getElementById(location.hash.slice(1));
     if (target) setTimeout(function () { target.scrollIntoView(); }, 60);
+  }
+  }
+  var catalogReady = window.ORCHIDS_CATALOG_READY;
+  if (catalogReady && typeof catalogReady.then === "function") {
+    catalogReady.then(init, init);
+  } else {
+    init();
   }
 })();

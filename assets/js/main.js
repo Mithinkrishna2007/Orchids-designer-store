@@ -3,6 +3,31 @@
    ========================================================================== */
 (function () {
   "use strict";
+  /* The loader is deliberately independent from the CMS request below. If a
+     network, Supabase or serverless request is slow, visitors still reach the
+     public site instead of being held on a permanent splash screen. */
+  var loader = document.querySelector(".site-loader");
+  var loaderShownAt = Date.now();
+  function showLoader() {
+    if (!loader) return;
+    loaderShownAt = Date.now();
+    loader.classList.remove("is-hidden");
+    loader.setAttribute("aria-hidden", "false");
+  }
+  function hideLoader() {
+    if (!loader) return;
+    var remaining = Math.max(0, 420 - (Date.now() - loaderShownAt));
+    window.setTimeout(function () {
+      loader.classList.add("is-hidden");
+      loader.setAttribute("aria-hidden", "true");
+    }, remaining);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", hideLoader, { once: true });
+  else hideLoader();
+  window.addEventListener("load", hideLoader, { once: true });
+  window.addEventListener("pageshow", hideLoader);
+  window.setTimeout(hideLoader, 1200);
+
   function init() {
   document.documentElement.classList.add("js");
 
@@ -33,26 +58,6 @@
     });
     document.body.appendChild(orchidFall);
   }
-
-  /* ---------- Branded loader ---------- */
-  var loader = document.querySelector(".site-loader");
-  var loaderShownAt = Date.now();
-  function showLoader() {
-    if (!loader) return;
-    loaderShownAt = Date.now();
-    loader.classList.remove("is-hidden");
-    loader.setAttribute("aria-hidden", "false");
-  }
-  function hideLoader() {
-    if (!loader) return;
-    var remaining = Math.max(0, 420 - (Date.now() - loaderShownAt));
-    window.setTimeout(function () {
-      loader.classList.add("is-hidden");
-      loader.setAttribute("aria-hidden", "true");
-    }, remaining);
-  }
-  window.addEventListener("load", hideLoader);
-  window.addEventListener("pageshow", hideLoader);
 
   document.addEventListener("click", function (event) {
     var link = event.target.closest && event.target.closest("a[href]");
